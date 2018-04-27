@@ -49,19 +49,21 @@ def start_server(host, port, keyfile, level):
 
     while True:
         conn, addr = server_socket.accept()
+        try:
+            host_key = paramiko.RSAKey.from_private_key_file(keyfile)
+            transport = paramiko.Transport(conn)
+            transport.add_server_key(host_key)
+            transport.set_subsystem_handler(
+                'sftp', paramiko.SFTPServer, StubSFTPServer)
 
-        host_key = paramiko.RSAKey.from_private_key_file(keyfile)
-        transport = paramiko.Transport(conn)
-        transport.add_server_key(host_key)
-        transport.set_subsystem_handler(
-            'sftp', paramiko.SFTPServer, StubSFTPServer)
+            server = StubServer()
+            transport.start_server(server=server)
 
-        server = StubServer()
-        transport.start_server(server=server)
-
-        channel = transport.accept()
-        while transport.is_active():
-            time.sleep(1)
+            channel = transport.accept()
+            while transport.is_active():
+                time.sleep(1)
+        except Exception as ex:
+            print ex
 
 
 def main():
